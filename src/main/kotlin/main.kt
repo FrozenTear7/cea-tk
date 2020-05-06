@@ -1,10 +1,26 @@
+import actors.Actor
+import actors.Logger
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import messages.IMessage
 
-fun main() {
-    GlobalScope.launch { // launch a new coroutine in background and continue
-        delay(1000L) // non-blocking delay for 1 second (default time unit is ms)
-        println("World!") // print after delay
+suspend fun launchActors(m: Int, n: Int) {
+    coroutineScope {
+        val channel = Channel<IMessage>()
+
+        for (i in 1..m * n) {
+            launch {
+                Actor(i, channel).doActorStuff()
+            }
+        }
+
+        Logger(channel).logActors()
     }
-    println("Hello,") // main thread continues while coroutine is delayed
-    Thread.sleep(2000L) // block main thread for 2 seconds to keep JVM alive
+}
+
+fun main(args: Array<String>) = runBlocking {
+    val m = args[0].toInt()
+    val n = args[1].toInt()
+
+    launchActors(m, n) // Create m*n actors
 }
