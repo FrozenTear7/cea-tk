@@ -3,19 +3,23 @@ import actors.Logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import messages.IMessage
+import messages.MessagePing
+import messages.MessageType
 
 suspend fun launchActors(m: Int, n: Int) {
-    coroutineScope {
-        val channel = Channel<IMessage>()
+    val logChannel = Channel<IMessage>()
 
-        for (i in 1..m * n) {
-            launch {
-                Actor(i, channel).doActorStuff()
-            }
+    for (i in 1..m * n) {
+        val actor = Actor(i, logChannel)
+
+        GlobalScope.launch {
+            actor.doActorStuff()
         }
 
-        Logger(channel).logActors()
+        actor.actorChannel.send(MessagePing(MessageType.REPRODUCE, 123))
     }
+
+    Logger(logChannel).logActors()
 }
 
 fun main(args: Array<String>) = runBlocking {
