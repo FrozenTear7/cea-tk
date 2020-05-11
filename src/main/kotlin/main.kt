@@ -8,15 +8,21 @@ import messages.MessageType
 
 suspend fun launchActors(m: Int, n: Int) {
     val logChannel = Channel<IMessage>()
+    val actorList: MutableList<Actor> = ArrayList()
 
     for (i in 1..m * n) {
-        val actor = Actor(i, logChannel)
+        val newActor = Actor(i, logChannel)
 
         GlobalScope.launch {
-            actor.doActorStuff()
+            for (actor in actorList) {
+                newActor.addNeighbour(actor)
+            }
+
+            newActor.doActorStuff()
         }
 
-        actor.actorChannel.send(MessagePing(MessageType.REPRODUCE, 123))
+        actorList.add(newActor)
+        newActor.actorChannel.send(MessagePing(MessageType.REPRODUCE, 123))
     }
 
     Logger(logChannel).logActors()
