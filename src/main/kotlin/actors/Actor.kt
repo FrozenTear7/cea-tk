@@ -11,6 +11,7 @@ import messages.MessageType
 class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Actor> = ArrayList()
+    var currentValue = 0
 
     fun addNeighbour(neighbour: Actor) {
         neighbours.add(neighbour)
@@ -21,7 +22,14 @@ class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>)
             val msg = actorChannel.receive()
 
             when (msg.messageType) {
-                MessageType.PING -> println("$actorId received ping from ${msg.messageValue}")
+                MessageType.PING -> {
+                    println("$actorId received ping with value ${msg.messageValue}")
+                    currentValue = msg.messageValue + 1
+                    delay(2000L)
+                    for (neighbour in neighbours) {
+                        neighbour.actorChannel.send(MessagePing(MessageType.PING, currentValue))
+                    }
+                }
                 MessageType.REPRODUCE -> println("$actorId received reproduce from ${msg.messageValue}")
             }
         }
@@ -33,10 +41,9 @@ class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>)
             channelListen()
         }
 
-        while (true) {
+        if (actorId == 1) {
             for (neighbour in neighbours) {
-                neighbour.actorChannel.send(MessagePing(MessageType.PING, actorId))
-                delay(2000L)
+                neighbour.actorChannel.send(MessagePing(MessageType.PING, currentValue))
             }
         }
     }

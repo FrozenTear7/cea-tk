@@ -12,17 +12,23 @@ suspend fun launchActors(m: Int, n: Int) {
 
     for (i in 1..m * n) {
         val newActor = Actor(i, logChannel)
-
-        GlobalScope.launch {
-            for (actor in actorList) {
-                newActor.addNeighbour(actor)
-            }
-
-            newActor.doActorStuff()
-        }
-
         actorList.add(newActor)
-        newActor.actorChannel.send(MessagePing(MessageType.REPRODUCE, 123))
+    }
+
+    for (i in 0 until m * n) {
+        val actor = actorList[i]
+        if (i == 0) {
+            actor.addNeighbour(actorList[m * n - 1])
+        } else {
+            actor.addNeighbour(actorList[i - 1])
+        }
+    }
+
+    for (actor in actorList) {
+        GlobalScope.launch {
+            actor.doActorStuff()
+        }
+        actor.actorChannel.send(MessagePing(MessageType.REPRODUCE, 123))
     }
 
     Logger(logChannel).logActors()
