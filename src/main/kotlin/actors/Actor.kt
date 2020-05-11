@@ -4,14 +4,12 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import messages.IMessage
-import messages.MessagePing
-import messages.MessageType
+import messages.*
 
-class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>) {
-    val actorChannel = Channel<IMessage>()
+class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
+    private val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Actor> = ArrayList()
-    var currentValue = 0
+    private var genotype: IGenotype = GenotypeExample1()
 
     fun addNeighbour(neighbour: Actor) {
         neighbours.add(neighbour)
@@ -23,14 +21,25 @@ class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>)
 
             when (msg.messageType) {
                 MessageType.PING -> {
-                    println("$actorId received ping with value ${msg.messageValue}")
-                    currentValue = msg.messageValue + 1
+                    val messagePing: MessagePing = msg as MessagePing
+                    println("$id received ping from actor ${messagePing.actor.id}")
                     delay(2000L)
+
+                    messagePing.actor.actorChannel.send(MessagePong(MessageType.PONG, this, genotype))
+
                     for (neighbour in neighbours) {
-                        neighbour.actorChannel.send(MessagePing(MessageType.PING, currentValue))
+                        neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
                     }
                 }
-                MessageType.REPRODUCE -> println("$actorId received reproduce from ${msg.messageValue}")
+                MessageType.PONG -> {
+                    val messagePong: MessagePong = msg as MessagePong
+                    println("$id received pong from actor ${messagePong.actor.id}")
+                }
+                MessageType.REPLACE -> {
+                    val messageReplace: MessageReplace = msg as MessageReplace
+                    println("$id received replace")
+                    genotype = messageReplace.genotype
+                }
             }
         }
     }
@@ -41,9 +50,9 @@ class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>)
             channelListen()
         }
 
-        if (actorId == 1) {
+        if (id == 1) {
             for (neighbour in neighbours) {
-                neighbour.actorChannel.send(MessagePing(MessageType.PING, currentValue))
+                neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
             }
         }
     }

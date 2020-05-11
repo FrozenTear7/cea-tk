@@ -3,8 +3,6 @@ import actors.Logger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import messages.IMessage
-import messages.MessagePing
-import messages.MessageType
 
 suspend fun launchActors(m: Int, n: Int) {
     val logChannel = Channel<IMessage>()
@@ -28,7 +26,6 @@ suspend fun launchActors(m: Int, n: Int) {
         GlobalScope.launch {
             actor.doActorStuff()
         }
-        actor.actorChannel.send(MessagePing(MessageType.REPRODUCE, 123))
     }
 
     Logger(logChannel).logActors()
