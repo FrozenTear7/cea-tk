@@ -1,5 +1,5 @@
 package messages
 
-import actors.IGenotype
+import actors.BestGenotype
 
-class MessageLoggerPong(override val messageType: MessageType, val bestGenotype: IGenotype) : IMessage
+class MessageLoggerPong(override val messageType: MessageType, val bestGenotype: BestGenotype) : IMessage

@@ -8,7 +8,7 @@ import messages.MessageLoggerPong
 import messages.MessageType
 
 class Logger(private val sentinels: List<Actor>, private val channel: Channel<IMessage>) {
-    private var bestGenotype: IGenotype? = null
+    private var bestGenotype: BestGenotype? = null
 
     suspend fun logActors() {
         while (true) {

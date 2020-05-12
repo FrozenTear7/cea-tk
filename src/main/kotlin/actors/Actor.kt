@@ -10,7 +10,11 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Actor> = ArrayList()
     private var genotype: IGenotype = GenotypeExample1()
-    private var bestGenotype: IGenotype = genotype
+        set(value) {
+            bestGenotype.genotype = genotype
+            field = value
+        }
+    private var bestGenotype: BestGenotype = BestGenotype(genotype)
 
     fun addNeighbour(neighbour: Actor) {
         neighbours.add(neighbour)
@@ -37,7 +41,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                     println("$id received pong from actor ${messagePong.actor.id}")
 
                     // Check if received genotype is better than actor's current and overwrite if it is
-//                    messagePong.actor.bestGenotype
+//                    bestGenotype.genotype = messagePong.actor.bestGenotype.genotype
                 }
                 MessageType.REPLACE -> {
                     val messageReplace: MessageReplace = msg as MessageReplace
@@ -56,6 +60,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     }
 
     suspend fun doActorStuff() {
+        println("$id time genotype ${bestGenotype.getFormattedTimestamp()}")
+
         // Launch a coroutine for consuming incoming messages
         GlobalScope.launch {
             channelListen()
