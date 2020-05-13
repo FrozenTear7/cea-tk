@@ -7,10 +7,10 @@ class BestGenotype(genotype: IGenotype) {
     var timestamp: Long = System.currentTimeMillis()
     var genotype: IGenotype = genotype
         set(value) {
-            timestamp = System.currentTimeMillis()
-//        if() { // Fitness check for genotype
-            field = value
-//        }
+            if (value.fitness() > field.fitness()) {
+                field = value
+                timestamp = System.currentTimeMillis()
+            }
         }
 
     fun getFormattedTimestamp(): String {
