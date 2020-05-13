@@ -5,6 +5,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import messages.*
+import utils.Printer
 
 class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
@@ -20,7 +21,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
         while (true) {
             when (val msg = actorChannel.receive()) {
                 is MessagePing -> {
-                    println("$id received ping from actor ${msg.actor.id}")
+                    Printer.msg("$id received ping from actor ${msg.actor.id}")
 
                     delay(50L)
 
@@ -30,42 +31,42 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
 //                    bestGenotype.genotype = msg.actor.bestGenotype.genotype
                 }
                 is MessagePong -> {
-                    println("$id received pong from actor ${msg.actor.id}")
+                    Printer.msg("$id received pong from actor ${msg.actor.id}")
 
                     // simplified reproduce, only for testing
                     // the new child replaces whoever is worse than him, otherwise is discarded
                     val newGenotype = genotype.reproduce(msg.actor.genotype)
                     if (msg.actor.genotype.fitness() < newGenotype.fitness()) {
-                        println("Partner is worse, sending him replace: ${msg.actor.genotype} -> $genotype")
+                        Printer.msg("Partner is worse, sending him replace: ${msg.actor.genotype} -> $genotype")
                         msg.actor.actorChannel.send(MessageReplace(newGenotype))
                     } else if (genotype.fitness() < newGenotype.fitness()) {
-                        println("I'm worse, replacing myself: $genotype -> $newGenotype")
+                        Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
                         genotype = newGenotype
                     } else {
-                        println("Child is disappointing, abandoning: $newGenotype")
+                        Printer.msg("Child is disappointing, abandoning: $newGenotype")
                     }
 
 //                     Check if received genotype is better than actor's current and overwrite if it is
 //                    bestGenotype.genotype = msg.actor.bestGenotype.genotype
                 }
                 is MessageReplace -> {
-                    println("$id received replace: $genotype -> ${msg.genotype}")
+                    Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
                     genotype = msg.genotype
                     bestGenotype.genotype = genotype // only for testing
                 }
                 is MessageLoggerPing -> {
-                    println("$id replying to logger")
+                    Printer.msg("$id replying to logger")
                     logChannel.send(MessageLoggerPong(bestGenotype))
                 }
                 else -> {
-                    println("$id received wrong type of request")
+                    Printer.msg("$id received wrong type of request")
                 }
             }
         }
     }
 
     suspend fun doActorStuff() {
-        println("$id time genotype ${bestGenotype.getFormattedTimestamp()}")
+        Printer.msg("$id time genotype ${bestGenotype.getFormattedTimestamp()}")
 
         // Launch a coroutine for consuming incoming messages
         GlobalScope.launch {

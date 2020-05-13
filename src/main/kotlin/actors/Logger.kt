@@ -5,6 +5,7 @@ import kotlinx.coroutines.delay
 import messages.IMessage
 import messages.MessageLoggerPing
 import messages.MessageLoggerPong
+import utils.Printer
 
 class Logger(private val sentinels: List<Actor>, private val channel: Channel<IMessage>) {
     private var bestGenotype: BestGenotype? = null
@@ -12,12 +13,12 @@ class Logger(private val sentinels: List<Actor>, private val channel: Channel<IM
     suspend fun logActors() {
         while (true) {
             for (sentinel in sentinels) {
-                println("Logger asking ${sentinel.id} for best genotype")
+                Printer.msg("Logger asking ${sentinel.id} for best genotype")
                 sentinel.actorChannel.send(MessageLoggerPing())
 
                 when (val msg = channel.receive()) {
                     is MessageLoggerPong -> {
-                        println("Logger received actor's best genotype, ${msg.bestGenotype.genotype}")
+                        Printer.msg("Logger received actor's best genotype, ${msg.bestGenotype.genotype}")
 
                         if (bestGenotype == null) {
                             bestGenotype = msg.bestGenotype
@@ -26,11 +27,11 @@ class Logger(private val sentinels: List<Actor>, private val channel: Channel<IM
                             bestGenotype = msg.bestGenotype
                         }
 
-                        println("Current best logged genotype: ${bestGenotype!!.genotype}")
+                        Printer.msg("Current best logged genotype: ${bestGenotype!!.genotype}", crucial=true)
                     }
 
                     else -> {
-                        println("Logger received wrong type of reqeust")
+                        Printer.msg("Logger received wrong type of reqeust")
                     }
                 }
             }

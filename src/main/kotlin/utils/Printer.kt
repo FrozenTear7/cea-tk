@@ -12,8 +12,5 @@ class Printer(private val verbose: Boolean) {
                 println(content)
             }
         }
-        public fun setMode(mode : Boolean) : Unit {
-            verbose = mode
-        }
     }
 }
