@@ -7,7 +7,7 @@ package utils
 class Printer(private val verbose: Boolean) {
     companion object {
         var verbose = true
-        public fun msg(content: String, crucial: Boolean = false) : Unit {
+        fun msg(content: String, crucial: Boolean = false) {
             if (verbose or crucial) {
                 println(content)
             }

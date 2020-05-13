@@ -25,9 +25,10 @@ suspend fun launchActors(m: Int, n: Int, x: Int) {
 fun main(args: Array<String>) = runBlocking {
     val m = args[0].toInt()
     val n = args[1].toInt()
-    val x = args[2].toInt()  // Number of actor talking to Logger
+    var x = args[2].toInt()  // Number of actors talking to Logger, will default to m*n if greater
+    if (x > m * n) x = m * n
 
-    Printer.verbose = true
+    Printer.verbose = false
 
     launchActors(m, n, x) // Create m*n actors
 }

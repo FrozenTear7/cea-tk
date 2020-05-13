@@ -27,7 +27,7 @@ class Logger(private val sentinels: List<Actor>, private val channel: Channel<IM
                             bestGenotype = msg.bestGenotype
                         }
 
-                        Printer.msg("Current best logged genotype: ${bestGenotype!!.genotype}", crucial=true)
+                        Printer.msg("Current best logged genotype: ${bestGenotype!!.genotype}, updated at: ${bestGenotype!!.getFormattedTimestamp()}", crucial=true)
                     }
 
                     else -> {

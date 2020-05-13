@@ -79,7 +79,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                     neighbour.actorChannel.send(MessagePing(this))
                     delay(50L)
                 }
-                delay(3000L)
+                delay(1000L)
             }
         }
     }
