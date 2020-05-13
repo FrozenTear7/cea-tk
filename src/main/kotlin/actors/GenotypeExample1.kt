@@ -13,9 +13,13 @@ class GenotypeExample1(xInitial: Double = Math.random()) : IGenotype {
     override fun reproduce(other: IGenotype): IGenotype {
         other as GenotypeExample1
 
-        val xNew = x + other.x + Math.random()
-        val randomOffset = (Math.random() - 0.5) * 0.05 // concrete
+        val xNew = (x + other.x) / 2
+        val randomOffset = (Math.random() - 0.5) * 0.01 // concrete
 
         return GenotypeExample1(xNew + randomOffset)
+    }
+
+    override fun toString(): String {
+        return x.toString()
     }
 }
