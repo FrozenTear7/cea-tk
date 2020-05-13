@@ -4,14 +4,17 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import messages.IMessage
-import messages.MessagePing
-import messages.MessageType
+import messages.*
 
-class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>) {
+class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Actor> = ArrayList()
-    var currentValue = 0
+    private var genotype: IGenotype = GenotypeExample1()
+        set(value) {
+            bestGenotype.genotype = genotype
+            field = value
+        }
+    private var bestGenotype: BestGenotype = BestGenotype(genotype)
 
     fun addNeighbour(neighbour: Actor) {
         neighbours.add(neighbour)
@@ -23,27 +26,50 @@ class Actor(private val actorId: Int, private val logChannel: Channel<IMessage>)
 
             when (msg.messageType) {
                 MessageType.PING -> {
-                    println("$actorId received ping with value ${msg.messageValue}")
-                    currentValue = msg.messageValue + 1
+                    val messagePing: MessagePing = msg as MessagePing
+                    println("$id received ping from actor ${messagePing.actor.id}")
                     delay(2000L)
+
+                    messagePing.actor.actorChannel.send(MessagePong(MessageType.PONG, this))
+
                     for (neighbour in neighbours) {
-                        neighbour.actorChannel.send(MessagePing(MessageType.PING, currentValue))
+                        neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
                     }
                 }
-                MessageType.REPRODUCE -> println("$actorId received reproduce from ${msg.messageValue}")
+                MessageType.PONG -> {
+                    val messagePong: MessagePong = msg as MessagePong
+                    println("$id received pong from actor ${messagePong.actor.id}")
+
+                    // Check if received genotype is better than actor's current and overwrite if it is
+//                    bestGenotype.genotype = messagePong.actor.bestGenotype.genotype
+                }
+                MessageType.REPLACE -> {
+                    val messageReplace: MessageReplace = msg as MessageReplace
+                    println("$id received replace")
+                    genotype = messageReplace.genotype
+                }
+                MessageType.LOGGER_PING -> {
+                    println("$id replying to logger")
+                    logChannel.send(MessageLoggerPong(MessageType.LOGGER_PONG, bestGenotype))
+                }
+                else -> {
+                    println("$id received wrong type of request")
+                }
             }
         }
     }
 
     suspend fun doActorStuff() {
+        println("$id time genotype ${bestGenotype.getFormattedTimestamp()}")
+
         // Launch a coroutine for consuming incoming messages
         GlobalScope.launch {
             channelListen()
         }
 
-        if (actorId == 1) {
+        if (id == 1) {
             for (neighbour in neighbours) {
-                neighbour.actorChannel.send(MessagePing(MessageType.PING, currentValue))
+                neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
             }
         }
     }

@@ -1,5 +1,5 @@
 package messages
 
-class MessagePing(override val messageType: MessageType, override val messageValue: Int) : IMessage {
+import actors.Actor
 
-}
+class MessagePing(override val messageType: MessageType, val actor: Actor) : IMessage

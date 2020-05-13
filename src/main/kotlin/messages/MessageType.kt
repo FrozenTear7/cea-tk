@@ -1,5 +1,5 @@
 package messages
 
 enum class MessageType {
-    PING, REPRODUCE
+    PING, PONG, REPLACE, LOGGER_PING, LOGGER_PONG
 }

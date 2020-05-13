@@ -1,0 +1,3 @@
+package actors
+
+interface IGenotype
