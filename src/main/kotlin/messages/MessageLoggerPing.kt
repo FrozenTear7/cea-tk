@@ -1,3 +1,3 @@
 package messages
 
-class MessageLoggerPing(override val messageType: MessageType) : IMessage
+class MessageLoggerPing : IMessage

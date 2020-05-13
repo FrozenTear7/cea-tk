@@ -2,4 +2,4 @@ package messages
 
 import actors.IGenotype
 
-class MessageReplace(override val messageType: MessageType, val genotype: IGenotype) : IMessage
+class MessageReplace(val genotype: IGenotype) : IMessage

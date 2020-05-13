@@ -10,10 +10,6 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Actor> = ArrayList()
     private var genotype: IGenotype = GenotypeExample1()
-        set(value) {
-            bestGenotype.genotype = genotype
-            field = value
-        }
     private var bestGenotype: BestGenotype = BestGenotype(genotype)
 
     fun addNeighbour(neighbour: Actor) {
@@ -22,35 +18,33 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
 
     private suspend fun channelListen() {
         while (true) {
-            val msg = actorChannel.receive()
-
-            when (msg.messageType) {
-                MessageType.PING -> {
-                    val messagePing: MessagePing = msg as MessagePing
-                    println("$id received ping from actor ${messagePing.actor.id}")
+            when (val msg = actorChannel.receive()) {
+                is MessagePing -> {
+                    println("$id received ping from actor ${msg.actor.id}")
                     delay(2000L)
 
-                    messagePing.actor.actorChannel.send(MessagePong(MessageType.PONG, this))
+                    msg.actor.actorChannel.send(MessagePong(this))
 
                     for (neighbour in neighbours) {
-                        neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
+                        neighbour.actorChannel.send(MessagePing(this))
                     }
-                }
-                MessageType.PONG -> {
-                    val messagePong: MessagePong = msg as MessagePong
-                    println("$id received pong from actor ${messagePong.actor.id}")
 
-                    // Check if received genotype is better than actor's current and overwrite if it is
-//                    bestGenotype.genotype = messagePong.actor.bestGenotype.genotype
+//                     Check if received genotype is better than actor's current and overwrite if it is
+//                    bestGenotype.genotype = msg.actor.bestGenotype.genotype
                 }
-                MessageType.REPLACE -> {
-                    val messageReplace: MessageReplace = msg as MessageReplace
+                is MessagePong -> {
+                    println("$id received pong from actor ${msg.actor.id}")
+
+//                     Check if received genotype is better than actor's current and overwrite if it is
+//                    bestGenotype.genotype = msg.actor.bestGenotype.genotype
+                }
+                is MessageReplace -> {
                     println("$id received replace")
-                    genotype = messageReplace.genotype
+                    genotype = msg.genotype
                 }
-                MessageType.LOGGER_PING -> {
+                is MessageLoggerPing -> {
                     println("$id replying to logger")
-                    logChannel.send(MessageLoggerPong(MessageType.LOGGER_PONG, bestGenotype))
+                    logChannel.send(MessageLoggerPong(bestGenotype))
                 }
                 else -> {
                     println("$id received wrong type of request")
@@ -69,7 +63,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
 
         if (id == 1) {
             for (neighbour in neighbours) {
-                neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
+                neighbour.actorChannel.send(MessagePing(this))
             }
         }
     }
