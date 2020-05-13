@@ -10,13 +10,13 @@ abstract class ActorSpawner(
 ) {
     protected var actorGrid: MutableList<MutableList<Actor>> = ArrayList()
 
-    public fun spawnActors(logChannel: Channel<IMessage>): MutableList<Actor> {
+    fun spawnActors(logChannel: Channel<IMessage>): MutableList<Actor> {
         initActors(logChannel)
         attachNeighbours()
         return flattenGrid()
     }
 
-    protected fun initActors(logChannel: Channel<IMessage>) {
+    private fun initActors(logChannel: Channel<IMessage>) {
         for (i in 0 until m) {
             val actorRow: MutableList<Actor> = ArrayList()
             for (j in 0 until n) {
@@ -28,7 +28,7 @@ abstract class ActorSpawner(
 
     protected abstract fun attachNeighbours()
 
-    protected fun flattenGrid(): MutableList<Actor> {
+    private fun flattenGrid(): MutableList<Actor> {
         val actors: MutableList<Actor> = ArrayList()
         for (actorRow in actorGrid) {
             actors.addAll(actorRow)
