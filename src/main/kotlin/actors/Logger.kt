@@ -17,18 +17,25 @@ class Logger(private val sentinels: List<Actor>, private val channel: Channel<IM
 
                 when (val msg = channel.receive()) {
                     is MessageLoggerPong -> {
-                        println("Logger received actor's best genotype")
+                        println("Logger received actor's best genotype, ${msg.bestGenotype.genotype}")
 
-                        // Later on add a check if the genotype is better than Logger's current best
-                        bestGenotype = msg.bestGenotype
+                        if (bestGenotype == null) {
+                            bestGenotype = msg.bestGenotype
+                        }
+                        else if (msg.bestGenotype.genotype.fitness() > bestGenotype!!.genotype.fitness()) {
+                            bestGenotype = msg.bestGenotype
+                        }
+
+                        println("Current best logged genotype: ${bestGenotype!!.genotype}")
                     }
+
                     else -> {
                         println("Logger received wrong type of reqeust")
                     }
                 }
             }
 
-            delay(2000L)
+            delay(5000L)
         }
     }
 }
