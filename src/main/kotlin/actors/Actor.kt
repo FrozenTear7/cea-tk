@@ -16,6 +16,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
         }
     private var bestGenotype: BestGenotype = BestGenotype(genotype)
 
+    fun setNeighbours(neighbours: MutableList<Actor>) {
+        this.neighbours = neighbours
+    }
+
     fun addNeighbour(neighbour: Actor) {
         neighbours.add(neighbour)
     }
