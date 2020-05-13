@@ -1,4 +1,4 @@
-import actors.Actor
+import actorSpawners.CrossActorSpawner
 import actors.Logger
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
@@ -8,21 +8,9 @@ import messages.IMessage
 
 suspend fun launchActors(m: Int, n: Int, x: Int) {
     val logChannel = Channel<IMessage>()
-    val actorList: MutableList<Actor> = ArrayList()
+    val actorSpawner = CrossActorSpawner(m, n)
 
-    for (i in 1..m * n) {
-        val newActor = Actor(i, logChannel)
-        actorList.add(newActor)
-    }
-
-    for (i in 0 until m * n) {
-        val actor = actorList[i]
-        if (i == 0) {
-            actor.addNeighbour(actorList[m * n - 1])
-        } else {
-            actor.addNeighbour(actorList[i - 1])
-        }
-    }
+    val actorList = actorSpawner.spawnActors(logChannel)
 
     for (actor in actorList) {
         GlobalScope.launch {
