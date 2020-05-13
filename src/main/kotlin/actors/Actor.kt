@@ -31,10 +31,6 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                     delay(2000L)
 
                     messagePing.actor.actorChannel.send(MessagePong(MessageType.PONG, this))
-
-                    for (neighbour in neighbours) {
-                        neighbour.actorChannel.send(MessagePing(MessageType.PING, this))
-                    }
                 }
                 MessageType.PONG -> {
                     val messagePong: MessagePong = msg as MessagePong
