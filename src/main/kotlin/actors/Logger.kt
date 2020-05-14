@@ -20,14 +20,20 @@ class Logger(private val sentinels: List<Actor>, private val channel: Channel<IM
                     is MessageLoggerPong -> {
                         Printer.msg("Logger received actor's best genotype, ${msg.bestGenotype.genotype}")
 
+                        val prevBestGenotypeFitness: Double = bestGenotype?.genotype?.fitness() ?: 0.0
+
                         if (bestGenotype == null) {
                             bestGenotype = msg.bestGenotype
-                        }
-                        else if (msg.bestGenotype.genotype.fitness() > bestGenotype!!.genotype.fitness()) {
+                        } else if (msg.bestGenotype.genotype.fitness() > bestGenotype!!.genotype.fitness()) {
                             bestGenotype = msg.bestGenotype
                         }
 
-                        Printer.msg("Current best logged genotype: ${bestGenotype!!.genotype}, updated at: ${bestGenotype!!.getFormattedTimestamp()}", crucial=true)
+                        if (bestGenotype!!.genotype.fitness() > prevBestGenotypeFitness) {
+                            Printer.msg(
+                                "Current best logged genotype: ${bestGenotype!!.genotype}, updated at: ${bestGenotype!!.getFormattedTimestamp()}",
+                                crucial = true
+                            )
+                        }
                     }
 
                     else -> {
