@@ -1,5 +1,6 @@
 package messages
 
-import actors.Actor
+import actors.BestGenotype
+import kotlinx.coroutines.channels.Channel
 
-class MessagePing(val actor: Actor) : IMessage
+class MessagePing(val actorId: Int, val bestGenotype: BestGenotype, val responseChannel: Channel<IMessage>) : IMessage

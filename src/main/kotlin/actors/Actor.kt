@@ -21,29 +21,27 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
         while (true) {
             when (val msg = actorChannel.receive()) {
                 is MessagePing -> {
-                    Printer.msg("$id received ping from actor ${msg.actor.id}")
+                    Printer.msg("$id received ping from actor ${msg.actorId}")
 
                     delay(50L)
 
-                    msg.actor.actorChannel.send(MessagePong(this))
+                    msg.responseChannel.send(MessagePong(id, genotype, bestGenotype, actorChannel))
 
-                    if (bestGenotype.genotype.fitness() < msg.actor.bestGenotype.genotype.fitness()) {
-                        bestGenotype.genotype = msg.actor.bestGenotype.genotype
-                    } else if (bestGenotype.genotype.fitness() > msg.actor.bestGenotype.genotype.fitness()) {
-                        msg.actor.bestGenotype.genotype = bestGenotype.genotype
+                    if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
+                        bestGenotype.genotype = msg.bestGenotype.genotype
                     }
                 }
                 is MessagePong -> {
-                    Printer.msg("$id received pong from actor ${msg.actor.id}")
+                    Printer.msg("$id received pong from actor ${msg.actorId}")
 
                     // simplified reproduce, only for testing
                     // the new child replaces whoever is worse than him, otherwise is discarded
-                    val newGenotype = genotype.reproduce(msg.actor.genotype)
+                    val newGenotype = genotype.reproduce(msg.genotype)
 
                     when {
-                        msg.actor.genotype.fitness() < newGenotype.fitness() -> {
-                            Printer.msg("Partner is worse, sending him replace: ${msg.actor.genotype} -> $genotype")
-                            msg.actor.actorChannel.send(MessageReplace(newGenotype))
+                        msg.genotype.fitness() < newGenotype.fitness() -> {
+                            Printer.msg("Partner is worse, sending him replace: ${msg.genotype} -> $genotype")
+                            msg.responseChannel.send(MessageReplace(newGenotype))
                         }
                         genotype.fitness() < newGenotype.fitness() -> {
                             Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
@@ -54,10 +52,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                         }
                     }
 
-                    if (bestGenotype.genotype.fitness() < msg.actor.bestGenotype.genotype.fitness()) {
-                        bestGenotype.genotype = msg.actor.bestGenotype.genotype
-                    } else if (bestGenotype.genotype.fitness() > msg.actor.bestGenotype.genotype.fitness()) {
-                        msg.actor.bestGenotype.genotype = bestGenotype.genotype
+                    if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
+                        bestGenotype.genotype = msg.bestGenotype.genotype
+                    } else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
+                        bestGenotype.genotype = newGenotype
                     }
                 }
                 is MessageReplace -> {
@@ -87,7 +85,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
         if (id == 1) {
             while (true) {
                 for (neighbour in neighbours) {
-                    neighbour.actorChannel.send(MessagePing(this))
+                    neighbour.actorChannel.send(MessagePing(id, bestGenotype, actorChannel))
                     delay(50L)
                 }
                 delay(1000L)
