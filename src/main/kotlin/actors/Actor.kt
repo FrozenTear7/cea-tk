@@ -2,7 +2,6 @@ package actors
 
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import messages.*
 import utils.Printer
@@ -23,9 +22,9 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                 is MessagePing -> {
                     Printer.msg("$id received ping from actor ${msg.actorId}")
 
-                    delay(50L)
-
-                    msg.responseChannel.send(MessagePong(id, genotype, bestGenotype, actorChannel))
+                    GlobalScope.launch {
+                        msg.responseChannel.send(MessagePong(id, genotype, bestGenotype, actorChannel))
+                    }
 
                     if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
                         bestGenotype.genotype = msg.bestGenotype.genotype
@@ -41,7 +40,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                     when {
                         msg.genotype.fitness() < newGenotype.fitness() -> {
                             Printer.msg("Partner is worse, sending him replace: ${msg.genotype} -> $genotype")
-                            msg.responseChannel.send(MessageReplace(newGenotype))
+
+                            GlobalScope.launch {
+                                msg.responseChannel.send(MessageReplace(newGenotype))
+                            }
                         }
                         genotype.fitness() < newGenotype.fitness() -> {
                             Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
@@ -65,7 +67,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                 }
                 is MessageLoggerPing -> {
                     Printer.msg("$id replying to logger")
-                    logChannel.send(MessageLoggerPong(bestGenotype))
+
+                    GlobalScope.launch {
+                        logChannel.send(MessageLoggerPong(bestGenotype))
+                    }
                 }
                 else -> {
                     Printer.msg("$id received wrong type of request")
@@ -82,13 +87,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
             channelListen()
         }
 
-        if (id == 1) {
-            while (true) {
-                for (neighbourChannel in neighbours) {
-                    neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
-                    delay(50L)
-                }
-                delay(1000L)
+        while (true) {
+            for (neighbourChannel in neighbours) {
+                Printer.msg("$id pinging")
+                neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
             }
         }
     }
