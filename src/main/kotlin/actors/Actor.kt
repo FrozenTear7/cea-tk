@@ -9,11 +9,11 @@ import utils.Printer
 
 class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
-    private var neighbours: MutableList<Actor> = ArrayList()
+    private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
     private var genotype: IGenotype = GenotypeExample1()
     private var bestGenotype: BestGenotype = BestGenotype(genotype)
 
-    fun setNeighbours(neighbours: MutableList<Actor>) {
+    fun setNeighbours(neighbours: MutableList<Channel<IMessage>>) {
         this.neighbours = neighbours
     }
 
@@ -84,8 +84,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
 
         if (id == 1) {
             while (true) {
-                for (neighbour in neighbours) {
-                    neighbour.actorChannel.send(MessagePing(id, bestGenotype, actorChannel))
+                for (neighbourChannel in neighbours) {
+                    neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
                     delay(50L)
                 }
                 delay(1000L)
