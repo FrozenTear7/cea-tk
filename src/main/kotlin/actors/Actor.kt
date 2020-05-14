@@ -27,8 +27,11 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
 
                     msg.actor.actorChannel.send(MessagePong(this))
 
-//                     Check if received genotype is better than actor's current and overwrite if it is
-//                    bestGenotype.genotype = msg.actor.bestGenotype.genotype
+                    if (bestGenotype.genotype.fitness() < msg.actor.bestGenotype.genotype.fitness()) {
+                        bestGenotype.genotype = msg.actor.bestGenotype.genotype
+                    } else if (bestGenotype.genotype.fitness() > msg.actor.bestGenotype.genotype.fitness()) {
+                        msg.actor.bestGenotype.genotype = bestGenotype.genotype
+                    }
                 }
                 is MessagePong -> {
                     Printer.msg("$id received pong from actor ${msg.actor.id}")
@@ -36,18 +39,26 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                     // simplified reproduce, only for testing
                     // the new child replaces whoever is worse than him, otherwise is discarded
                     val newGenotype = genotype.reproduce(msg.actor.genotype)
-                    if (msg.actor.genotype.fitness() < newGenotype.fitness()) {
-                        Printer.msg("Partner is worse, sending him replace: ${msg.actor.genotype} -> $genotype")
-                        msg.actor.actorChannel.send(MessageReplace(newGenotype))
-                    } else if (genotype.fitness() < newGenotype.fitness()) {
-                        Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
-                        genotype = newGenotype
-                    } else {
-                        Printer.msg("Child is disappointing, abandoning: $newGenotype")
+
+                    when {
+                        msg.actor.genotype.fitness() < newGenotype.fitness() -> {
+                            Printer.msg("Partner is worse, sending him replace: ${msg.actor.genotype} -> $genotype")
+                            msg.actor.actorChannel.send(MessageReplace(newGenotype))
+                        }
+                        genotype.fitness() < newGenotype.fitness() -> {
+                            Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
+                            genotype = newGenotype
+                        }
+                        else -> {
+                            Printer.msg("Child is disappointing, abandoning: $newGenotype")
+                        }
                     }
 
-//                     Check if received genotype is better than actor's current and overwrite if it is
-//                    bestGenotype.genotype = msg.actor.bestGenotype.genotype
+                    if (bestGenotype.genotype.fitness() < msg.actor.bestGenotype.genotype.fitness()) {
+                        bestGenotype.genotype = msg.actor.bestGenotype.genotype
+                    } else if (bestGenotype.genotype.fitness() > msg.actor.bestGenotype.genotype.fitness()) {
+                        msg.actor.bestGenotype.genotype = bestGenotype.genotype
+                    }
                 }
                 is MessageReplace -> {
                     Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
