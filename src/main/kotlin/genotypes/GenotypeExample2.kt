@@ -16,16 +16,16 @@ class GenotypeExample2(xInitial: Double = randrange(-4.5, 4.5), yInitial: Double
     private val y = yInitial
 
     override fun fitness(): Double {
-        return -(2.5 - x + x * y) * (2.5 - x + x * y) - (2.25 - x + x * y * y) * (2.25 - x + x * y * y) - (2.625 - x + x * y * y * y) * (2.625 - x + x * y * y * y)
+        return -(1.5 - x + x * y) * (1.5 - x + x * y) - (2.25 - x + x * y * y) * (2.25 - x + x * y * y) - (2.625 - x + x * y * y * y) * (2.625 - x + x * y * y * y)
     }
 
     override fun reproduce(other: IGenotype): IGenotype {
         other as GenotypeExample2
 
         val xNew = (x + other.x) / 2
-        val xRandomOffset = (Math.random() - 0.5) * abs(x - other.x)
+        val xRandomOffset = (Math.random() - 0.5) * abs(x - other.x) * 10
         val yNew = (y + other.y) / 2
-        val yRandomOffset = (Math.random() - 0.5) * abs(x - other.x)
+        val yRandomOffset = (Math.random() - 0.5) * abs(x - other.x) * 10
 
         return GenotypeExample2(xNew + xRandomOffset, yNew + yRandomOffset)
     }
