@@ -5,12 +5,16 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import messages.*
 import utils.Printer
+import java.util.*
+import kotlin.collections.ArrayList
 
 class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
     private var genotype: IGenotype = GenotypeExample1()
     private var bestGenotype: BestGenotype = BestGenotype(genotype)
+
+    private var responseQueue: Queue<Pair<Channel<IMessage>, IMessage>> = LinkedList()
 
     fun setNeighbours(neighbours: MutableList<Channel<IMessage>>) {
         this.neighbours = neighbours
@@ -22,8 +26,13 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                 is MessagePing -> {
                     Printer.msg("$id received ping from actor ${msg.actorId}")
 
-                    GlobalScope.launch {
-                        msg.responseChannel.send(MessagePong(id, genotype, bestGenotype, actorChannel))
+                    synchronized(responseQueue) {
+                        responseQueue.add(
+                            Pair(
+                                msg.responseChannel,
+                                MessagePong(id, genotype, bestGenotype, actorChannel)
+                            )
+                        )
                     }
 
                     if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
@@ -41,8 +50,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                         msg.genotype.fitness() < newGenotype.fitness() -> {
                             Printer.msg("Partner is worse, sending him replace: ${msg.genotype} -> $genotype")
 
-                            GlobalScope.launch {
-                                msg.responseChannel.send(MessageReplace(newGenotype))
+                            synchronized(responseQueue) {
+                                responseQueue.add(Pair(msg.responseChannel, MessageReplace(newGenotype)))
                             }
                         }
                         genotype.fitness() < newGenotype.fitness() -> {
@@ -68,8 +77,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
                 is MessageLoggerPing -> {
                     Printer.msg("$id replying to logger")
 
-                    GlobalScope.launch {
-                        logChannel.send(MessageLoggerPong(bestGenotype))
+                    synchronized(responseQueue) {
+                        responseQueue.add(Pair(logChannel, MessageLoggerPong(bestGenotype)))
                     }
                 }
                 else -> {
@@ -88,6 +97,19 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
         }
 
         while (true) {
+            while (!responseQueue.isEmpty()) {
+                var responsePair: Pair<Channel<IMessage>, IMessage>
+
+                synchronized(responseQueue) {
+                    responsePair = responseQueue.remove()
+                }
+
+                val responseChannel = responsePair.first
+                val responseMsg = responsePair.second
+
+                responseChannel.send(responseMsg)
+            }
+
             for (neighbourChannel in neighbours) {
                 Printer.msg("$id pinging")
                 neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
