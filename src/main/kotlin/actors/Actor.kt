@@ -1,8 +1,6 @@
 package actors
 
-import genotypes.BestGenotype
-import genotypes.GenotypeExample1
-import genotypes.IGenotype
+import genotypes.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -15,7 +13,7 @@ import kotlin.collections.ArrayList
 class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val nIter: Int) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
-    private var genotype: IGenotype = GenotypeExample1()
+    private var genotype: IGenotype = GenotypeExample3()
     private var bestGenotype: BestGenotype =
         BestGenotype(genotype)
 

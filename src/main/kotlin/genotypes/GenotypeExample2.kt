@@ -5,7 +5,7 @@ import kotlin.math.abs
 
 // One of the benchmark functions used for testing: the Beale function.
 // The task is to minimize this function for (x, y) in [-4.5, 4.5],
-// but we allow other real inputs as their fitness is worse and should lead to the same extremum.
+// but we allow other real inputs as their fitness is worse and should lead to the same results.
 
 // The fitness formula is the negative Beale function, since we always maximize fitness (but want to find a minimum).
 

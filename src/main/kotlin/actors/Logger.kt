@@ -3,6 +3,7 @@ package actors
 import genotypes.BestGenotype
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import messages.IMessage
 import messages.MessageFinish
@@ -31,7 +32,7 @@ class Logger(private val sentinels: List<Actor>, private val channel: Channel<IM
 
                     if (bestGenotype!!.genotype.fitness() > prevBestGenotypeFitness) {
                         Printer.msg(
-                            "Current best logged genotype: ${bestGenotype!!.genotype}, updated at: " +
+                            "Current best logged genotype: ${bestGenotype!!.genotype}, fitness: ${bestGenotype!!.genotype.fitness()}, updated at: " +
                                     "${TimeFormat.getFormattedTimestamp(bestGenotype!!.timestamp)}",
                             crucial = true
                         )
