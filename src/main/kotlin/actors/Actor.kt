@@ -5,10 +5,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import messages.*
 import utils.Printer
+import utils.TimeFormat
 import java.util.*
 import kotlin.collections.ArrayList
 
-class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
+class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val nIter: Int) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
     private var genotype: IGenotype = GenotypeExample1()
@@ -88,32 +89,40 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>) {
         }
     }
 
+    suspend fun handleResponseQueue() {
+        while (!responseQueue.isEmpty()) {
+            var responsePair: Pair<Channel<IMessage>, IMessage>
+
+            synchronized(responseQueue) {
+                responsePair = responseQueue.remove()
+            }
+
+            val responseChannel = responsePair.first
+            val responseMsg = responsePair.second
+
+            responseChannel.send(responseMsg)
+        }
+    }
+
     suspend fun doActorStuff() {
-        Printer.msg("$id time genotype ${bestGenotype.getFormattedTimestamp()}")
+        Printer.msg("$id time genotype ${TimeFormat.getFormattedTimestamp(bestGenotype.timestamp)}")
 
         // Launch a coroutine for consuming incoming messages
         GlobalScope.launch {
             channelListen()
         }
 
-        while (true) {
-            while (!responseQueue.isEmpty()) {
-                var responsePair: Pair<Channel<IMessage>, IMessage>
-
-                synchronized(responseQueue) {
-                    responsePair = responseQueue.remove()
-                }
-
-                val responseChannel = responsePair.first
-                val responseMsg = responsePair.second
-
-                responseChannel.send(responseMsg)
-            }
+        for (i in 0 until nIter) {
+            handleResponseQueue()
 
             for (neighbourChannel in neighbours) {
                 Printer.msg("$id pinging")
                 neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
             }
         }
+
+        handleResponseQueue()
+
+        logChannel.send(MessageFinish())
     }
 }

@@ -6,7 +6,8 @@ import messages.IMessage
 
 abstract class ActorSpawner(
     protected val m: Int,
-    protected val n: Int
+    protected val n: Int,
+    private val nIter: Int
 ) {
     protected var actorGrid: MutableList<MutableList<Actor>> = ArrayList()
 
@@ -20,7 +21,7 @@ abstract class ActorSpawner(
         for (i in 0 until m) {
             val actorRow: MutableList<Actor> = ArrayList()
             for (j in 0 until n) {
-                actorRow.add(Actor(i * n + j, logChannel))
+                actorRow.add(Actor(i * n + j, logChannel, nIter))
             }
             actorGrid.add(actorRow)
         }

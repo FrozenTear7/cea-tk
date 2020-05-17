@@ -3,7 +3,7 @@ package actorSpawners
 import kotlinx.coroutines.channels.Channel
 import messages.IMessage
 
-class CrossActorSpawner(m: Int, n: Int) : ActorSpawner(m, n) {
+class CrossActorSpawner(m: Int, n: Int, nIter: Int) : ActorSpawner(m, n, nIter) {
     override fun attachNeighbours() {
         for (i in 0 until m) {
             for (j in 0 until n) {
