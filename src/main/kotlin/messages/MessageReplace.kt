@@ -1,5 +1,5 @@
 package messages
 
-import actors.IGenotype
+import genotypes.IGenotype
 
 class MessageReplace(val genotype: IGenotype) : IMessage

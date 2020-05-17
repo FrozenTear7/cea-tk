@@ -1,7 +1,7 @@
 package messages
 
-import actors.BestGenotype
-import actors.IGenotype
+import genotypes.BestGenotype
+import genotypes.IGenotype
 import kotlinx.coroutines.channels.Channel
 
 class MessagePong(

@@ -1,4 +1,4 @@
-package actors
+package genotypes
 
 interface IGenotype{
     fun fitness() : Double

@@ -1,5 +1,8 @@
 package actors
 
+import genotypes.BestGenotype
+import genotypes.GenotypeExample1
+import genotypes.IGenotype
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -13,7 +16,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
     private var genotype: IGenotype = GenotypeExample1()
-    private var bestGenotype: BestGenotype = BestGenotype(genotype)
+    private var bestGenotype: BestGenotype =
+        BestGenotype(genotype)
 
     private var responseQueue: Queue<Pair<Channel<IMessage>, IMessage>> = LinkedList()
 
@@ -73,7 +77,6 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
                 is MessageReplace -> {
                     Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
                     genotype = msg.genotype
-                    bestGenotype.genotype = genotype // only for testing
                 }
                 is MessageLoggerPing -> {
                     Printer.msg("$id replying to logger")

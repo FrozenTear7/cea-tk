@@ -1,4 +1,6 @@
-package actors
+package genotypes
+
+import genotypes.IGenotype
 
 class BestGenotype(genotype: IGenotype) {
     var timestamp: Long = System.currentTimeMillis()
