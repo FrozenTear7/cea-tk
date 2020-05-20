@@ -18,7 +18,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
     private var reproduceChooser: GenotypeChooser = GenotypeBestChooser()
     private var removeChooser: GenotypeChooser = GenotypeWorstChooser()
-    private var genotype: IGenotype = GenotypeExample1()
+    private var genotype: IGenotype = GenotypeExample3()
     private var bestGenotype: BestGenotype =
         BestGenotype(genotype)
 
@@ -105,7 +105,6 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
             }
 
             handleDefaultResponseQueue()
-            reproduce()
         }
         logChannel.send(MessageFinish())
     }
