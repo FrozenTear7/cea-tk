@@ -69,6 +69,11 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
             receivedPongs.first.add(msg.responseChannel)
             receivedPongs.second.add(msg.genotype)
             receivedPongs.third.add(msg.bestGenotype)
+
+            if (receivedPongs.second.size == neighbours.size) {
+                reproduce()
+                receivedPongs = Triple(ArrayList(), ArrayList(), ArrayList())
+            }
         }
     }
 
@@ -123,21 +128,12 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     private fun reproduce() {
         var removeChannel: Channel<IMessage>
         var chosenGenotype: IGenotype
-        var chosenBestGenotype: BestGenotype
 
-        synchronized(receivedPongs) {
-            if (receivedPongs.second.isEmpty()) {
-                return
-            }
-            val reproduceIndex = reproduceChooser.choose(receivedPongs.second)
-            val removeIndex = removeChooser.choose(receivedPongs.second)
+        val reproduceIndex = reproduceChooser.choose(receivedPongs.second)
+        val removeIndex = removeChooser.choose(receivedPongs.second)
 
-            removeChannel = receivedPongs.first[removeIndex]
-            chosenGenotype = receivedPongs.second[reproduceIndex]
-            chosenBestGenotype = receivedPongs.third[reproduceIndex]
-
-            receivedPongs = Triple(ArrayList(), ArrayList(), ArrayList())
-        }
+        removeChannel = receivedPongs.first[removeIndex]
+        chosenGenotype = receivedPongs.second[reproduceIndex]
 
         val newGenotype = genotype.reproduce(chosenGenotype)
 
@@ -145,10 +141,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
             defaultResponseQueue.add(Pair(removeChannel, MessageReplace(newGenotype)))
         }
 
-        if (bestGenotype.genotype.fitness() < chosenBestGenotype.genotype.fitness()) {
-            bestGenotype.genotype = chosenBestGenotype.genotype
-        }
-        else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
+        if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
             bestGenotype.genotype = newGenotype
         }
     }
