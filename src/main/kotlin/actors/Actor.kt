@@ -24,11 +24,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         BestGenotype(genotype)
 
     private var defaultResponseQueue: Queue<Pair<Channel<IMessage>, IMessage>> = LinkedList()
-    private var receivedPongs: Triple<
+    private var receivedPongs: Pair<
             MutableList<Channel<IMessage>>,
-            MutableList<IGenotype>,
-            MutableList<BestGenotype>
-            > = Triple(ArrayList(), ArrayList(), ArrayList())
+            MutableList<IGenotype>
+            > = Pair(ArrayList(), ArrayList())
 
     fun setNeighbours(neighbours: MutableList<Channel<IMessage>>) {
         this.neighbours = neighbours
@@ -69,11 +68,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         synchronized(receivedPongs) {
             receivedPongs.first.add(msg.responseChannel)
             receivedPongs.second.add(msg.genotype)
-            receivedPongs.third.add(msg.bestGenotype)
 
             if (receivedPongs.second.size == neighbours.size) {
                 reproduce()
-                receivedPongs = Triple(ArrayList(), ArrayList(), ArrayList())
+                receivedPongs = Pair(ArrayList(), ArrayList())
             }
         }
     }
@@ -128,8 +126,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     }
 
     private fun reproduce() {
-        var removeChannel: Channel<IMessage>
-        var chosenGenotype: IGenotype
+        val removeChannel: Channel<IMessage>
+        val chosenGenotype: IGenotype
 
         val reproduceIndex = reproduceChooser.choose(receivedPongs.second)
         val removeIndex = removeChooser.choose(receivedPongs.second)
