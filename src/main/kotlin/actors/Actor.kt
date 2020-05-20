@@ -13,11 +13,12 @@ import kotlin.collections.ArrayList
 class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val nIter: Int) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
-    private var genotype: IGenotype = GenotypeExample3()
+    private var genotype: IGenotype = GenotypeExample1()
     private var bestGenotype: BestGenotype =
         BestGenotype(genotype)
 
-    private var responseQueue: Queue<Pair<Channel<IMessage>, IMessage>> = LinkedList()
+    private var defaultResponseQueue: Queue<Pair<Channel<IMessage>, IMessage>> = LinkedList()
+    private var receivedPongs: MutableList<Triple<Channel<IMessage>, IGenotype, BestGenotype>> = ArrayList()
 
     fun setNeighbours(neighbours: MutableList<Channel<IMessage>>) {
         this.neighbours = neighbours
@@ -29,8 +30,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
                 is MessagePing -> {
                     Printer.msg("$id received ping from actor ${msg.actorId}")
 
-                    synchronized(responseQueue) {
-                        responseQueue.add(
+                    synchronized(defaultResponseQueue) {
+                        defaultResponseQueue.add(
                             Pair(
                                 msg.responseChannel,
                                 MessagePong(id, genotype, bestGenotype, actorChannel)
@@ -45,31 +46,14 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
                 is MessagePong -> {
                     Printer.msg("$id received pong from actor ${msg.actorId}")
 
-                    // simplified reproduce, only for testing
-                    // the new child replaces whoever is worse than him, otherwise is discarded
-                    val newGenotype = genotype.reproduce(msg.genotype)
-
-                    when {
-                        msg.genotype.fitness() < newGenotype.fitness() -> {
-                            Printer.msg("Partner is worse, sending him replace: ${msg.genotype} -> $genotype")
-
-                            synchronized(responseQueue) {
-                                responseQueue.add(Pair(msg.responseChannel, MessageReplace(newGenotype)))
-                            }
-                        }
-                        genotype.fitness() < newGenotype.fitness() -> {
-                            Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
-                            genotype = newGenotype
-                        }
-                        else -> {
-                            Printer.msg("Child is disappointing, abandoning: $newGenotype")
-                        }
-                    }
-
-                    if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
-                        bestGenotype.genotype = msg.bestGenotype.genotype
-                    } else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
-                        bestGenotype.genotype = newGenotype
+                    synchronized(receivedPongs) {
+                        receivedPongs.add(
+                            Triple(
+                                msg.responseChannel,
+                                msg.genotype,
+                                msg.bestGenotype
+                            )
+                        )
                     }
                 }
                 is MessageReplace -> {
@@ -79,8 +63,8 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
                 is MessageLoggerPing -> {
                     Printer.msg("$id replying to logger")
 
-                    synchronized(responseQueue) {
-                        responseQueue.add(Pair(logChannel, MessageLoggerPong(bestGenotype)))
+                    synchronized(defaultResponseQueue) {
+                        defaultResponseQueue.add(Pair(logChannel, MessageLoggerPong(bestGenotype)))
                     }
                 }
                 else -> {
@@ -90,12 +74,17 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         }
     }
 
-    suspend fun handleResponseQueue() {
-        while (!responseQueue.isEmpty()) {
+    private suspend fun handleResponseQueues() {
+        handleDefaultResponseQueue()
+        handlePongQueue()
+    }
+
+    private suspend fun handleDefaultResponseQueue() {
+        while (!defaultResponseQueue.isEmpty()) {
             var responsePair: Pair<Channel<IMessage>, IMessage>
 
-            synchronized(responseQueue) {
-                responsePair = responseQueue.remove()
+            synchronized(defaultResponseQueue) {
+                responsePair = defaultResponseQueue.remove()
             }
 
             val responseChannel = responsePair.first
@@ -103,6 +92,49 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
 
             responseChannel.send(responseMsg)
         }
+    }
+
+    private fun handlePongQueue() {
+        if (receivedPongs.size == neighbours.size) {
+            var responseTriple: Triple<Channel<IMessage>, IGenotype, BestGenotype>
+
+            synchronized(receivedPongs) {
+                if (receivedPongs.isEmpty()) {
+                    return
+                }
+                responseTriple = receivedPongs[0]
+                receivedPongs.clear()
+            }
+
+            val chosenChannel = responseTriple.first
+            val chosenGenotype = responseTriple.second
+            val chosenBestGenotype = responseTriple.third
+            val newGenotype = genotype.reproduce(chosenGenotype)
+
+            when {
+                chosenGenotype.fitness() < newGenotype.fitness() -> {
+                    Printer.msg("Partner is worse, sending him replace: $chosenGenotype -> $genotype")
+
+                    synchronized(defaultResponseQueue) {
+                        defaultResponseQueue.add(Pair(chosenChannel, MessageReplace(newGenotype)))
+                    }
+                }
+                genotype.fitness() < newGenotype.fitness() -> {
+                    Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
+                    genotype = newGenotype
+                }
+                else -> {
+                    Printer.msg("Child is disappointing, abandoning: $newGenotype")
+                }
+            }
+
+            if (bestGenotype.genotype.fitness() < chosenBestGenotype.genotype.fitness()) {
+                bestGenotype.genotype = chosenBestGenotype.genotype
+            } else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
+                bestGenotype.genotype = newGenotype
+            }
+        }
+
     }
 
     suspend fun doActorStuff() {
@@ -114,7 +146,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         }
 
         for (i in 0 until nIter) {
-            handleResponseQueue()
+            handleResponseQueues()
 
             for (neighbourChannel in neighbours) {
                 Printer.msg("$id pinging")
@@ -122,7 +154,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
             }
         }
 
-        handleResponseQueue()
+        handleResponseQueues()
 
         logChannel.send(MessageFinish())
     }
