@@ -9,7 +9,7 @@ class GenotypeBestChooser : GenotypeChooser {
         var bestFitness = Double.MIN_VALUE
 
         for (i in genotypes.indices) {
-            if (genotypes[i].fitness() < bestFitness) {
+            if (genotypes[i].fitness() > bestFitness) {
                 bestFitness = genotypes[i].fitness()
                 bestIndex = i
             }

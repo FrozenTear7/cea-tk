@@ -1,5 +1,8 @@
 package actors
 
+import genotypeChoosers.GenotypeBestChooser
+import genotypeChoosers.GenotypeChooser
+import genotypeChoosers.GenotypeWorstChooser
 import genotypes.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
@@ -13,12 +16,18 @@ import kotlin.collections.ArrayList
 class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val nIter: Int) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
+    private var reproduceChooser: GenotypeChooser = GenotypeBestChooser()
+    private var removeChooser: GenotypeChooser = GenotypeWorstChooser()
     private var genotype: IGenotype = GenotypeExample1()
     private var bestGenotype: BestGenotype =
         BestGenotype(genotype)
 
     private var defaultResponseQueue: Queue<Pair<Channel<IMessage>, IMessage>> = LinkedList()
-    private var receivedPongs: MutableList<Triple<Channel<IMessage>, IGenotype, BestGenotype>> = ArrayList()
+    private var receivedPongs: Triple<
+            MutableList<Channel<IMessage>>,
+            MutableList<IGenotype>,
+            MutableList<BestGenotype>
+            > = Triple(ArrayList(), ArrayList(), ArrayList())
 
     fun setNeighbours(neighbours: MutableList<Channel<IMessage>>) {
         this.neighbours = neighbours
@@ -57,13 +66,9 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         Printer.msg("$id received pong from actor ${msg.actorId}")
 
         synchronized(receivedPongs) {
-            receivedPongs.add(
-                Triple(
-                    msg.responseChannel,
-                    msg.genotype,
-                    msg.bestGenotype
-                )
-            )
+            receivedPongs.first.add(msg.responseChannel)
+            receivedPongs.second.add(msg.genotype)
+            receivedPongs.third.add(msg.bestGenotype)
         }
     }
 
@@ -116,41 +121,34 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     }
 
     private fun reproduce() {
-        var responseTriple: Triple<Channel<IMessage>, IGenotype, BestGenotype>
+        var removeChannel: Channel<IMessage>
+        var chosenGenotype: IGenotype
+        var chosenBestGenotype: BestGenotype
 
         synchronized(receivedPongs) {
-            if (receivedPongs.isEmpty()) {
+            if (receivedPongs.second.isEmpty()) {
                 return
             }
-            responseTriple = receivedPongs[0]
-            receivedPongs.clear()
+            val reproduceIndex = reproduceChooser.choose(receivedPongs.second)
+            val removeIndex = removeChooser.choose(receivedPongs.second)
+
+            removeChannel = receivedPongs.first[removeIndex]
+            chosenGenotype = receivedPongs.second[reproduceIndex]
+            chosenBestGenotype = receivedPongs.third[reproduceIndex]
+
+            receivedPongs = Triple(ArrayList(), ArrayList(), ArrayList())
         }
 
-        val chosenChannel = responseTriple.first
-        val chosenGenotype = responseTriple.second
-        val chosenBestGenotype = responseTriple.third
         val newGenotype = genotype.reproduce(chosenGenotype)
 
-        when {
-            chosenGenotype.fitness() < newGenotype.fitness() -> {
-                Printer.msg("Partner is worse, sending him replace: $chosenGenotype -> $genotype")
-
-                synchronized(defaultResponseQueue) {
-                    defaultResponseQueue.add(Pair(chosenChannel, MessageReplace(newGenotype)))
-                }
-            }
-            genotype.fitness() < newGenotype.fitness() -> {
-                Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
-                genotype = newGenotype
-            }
-            else -> {
-                Printer.msg("Child is disappointing, abandoning: $newGenotype")
-            }
+        synchronized(defaultResponseQueue) {
+            defaultResponseQueue.add(Pair(removeChannel, MessageReplace(newGenotype)))
         }
 
         if (bestGenotype.genotype.fitness() < chosenBestGenotype.genotype.fitness()) {
             bestGenotype.genotype = chosenBestGenotype.genotype
-        } else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
+        }
+        else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
             bestGenotype.genotype = newGenotype
         }
     }
