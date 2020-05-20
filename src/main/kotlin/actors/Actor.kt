@@ -27,56 +27,77 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     private suspend fun channelListen() {
         while (true) {
             when (val msg = actorChannel.receive()) {
-                is MessagePing -> {
-                    Printer.msg("$id received ping from actor ${msg.actorId}")
-
-                    synchronized(defaultResponseQueue) {
-                        defaultResponseQueue.add(
-                            Pair(
-                                msg.responseChannel,
-                                MessagePong(id, genotype, bestGenotype, actorChannel)
-                            )
-                        )
-                    }
-
-                    if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
-                        bestGenotype.genotype = msg.bestGenotype.genotype
-                    }
-                }
-                is MessagePong -> {
-                    Printer.msg("$id received pong from actor ${msg.actorId}")
-
-                    synchronized(receivedPongs) {
-                        receivedPongs.add(
-                            Triple(
-                                msg.responseChannel,
-                                msg.genotype,
-                                msg.bestGenotype
-                            )
-                        )
-                    }
-                }
-                is MessageReplace -> {
-                    Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
-                    genotype = msg.genotype
-                }
-                is MessageLoggerPing -> {
-                    Printer.msg("$id replying to logger")
-
-                    synchronized(defaultResponseQueue) {
-                        defaultResponseQueue.add(Pair(logChannel, MessageLoggerPong(bestGenotype)))
-                    }
-                }
-                else -> {
-                    Printer.msg("$id received wrong type of request")
-                }
+                is MessagePing -> messagePingHandler(msg)
+                is MessagePong -> messagePongHandler(msg)
+                is MessageReplace -> messageReplaceHandler(msg)
+                is MessageLoggerPing -> messageLoggerPingHandler()
+                else -> Printer.msg("$id received wrong type of request")
             }
         }
     }
 
-    private suspend fun handleResponseQueues() {
-        handleDefaultResponseQueue()
-        handlePongQueue()
+    private fun messagePingHandler(msg: MessagePing) {
+        Printer.msg("$id received ping from actor ${msg.actorId}")
+
+        synchronized(defaultResponseQueue) {
+            defaultResponseQueue.add(
+                Pair(
+                    msg.responseChannel,
+                    MessagePong(id, genotype, bestGenotype, actorChannel)
+                )
+            )
+        }
+
+        if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
+            bestGenotype.genotype = msg.bestGenotype.genotype
+        }
+    }
+
+    private fun messagePongHandler(msg: MessagePong) {
+        Printer.msg("$id received pong from actor ${msg.actorId}")
+
+        synchronized(receivedPongs) {
+            receivedPongs.add(
+                Triple(
+                    msg.responseChannel,
+                    msg.genotype,
+                    msg.bestGenotype
+                )
+            )
+        }
+    }
+
+    private fun messageReplaceHandler(msg: MessageReplace) {
+        Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
+        genotype = msg.genotype
+    }
+
+    private fun messageLoggerPingHandler() {
+        Printer.msg("$id replying to logger")
+
+        synchronized(defaultResponseQueue) {
+            defaultResponseQueue.add(Pair(logChannel, MessageLoggerPong(bestGenotype)))
+        }
+    }
+
+    suspend fun doActorStuff() {
+        Printer.msg("$id time genotype ${TimeFormat.getFormattedTimestamp(bestGenotype.timestamp)}")
+
+        // Launch a coroutine for consuming incoming messages
+        GlobalScope.launch {
+            channelListen()
+        }
+
+        for (i in 0 until nIter) {
+            for (neighbourChannel in neighbours) {
+                Printer.msg("$id pinging")
+                neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
+            }
+
+            handleDefaultResponseQueue()
+            reproduce()
+        }
+        logChannel.send(MessageFinish())
     }
 
     private suspend fun handleDefaultResponseQueue() {
@@ -94,68 +115,43 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         }
     }
 
-    private fun handlePongQueue() {
-        if (receivedPongs.size == neighbours.size) {
-            var responseTriple: Triple<Channel<IMessage>, IGenotype, BestGenotype>
+    private fun reproduce() {
+        var responseTriple: Triple<Channel<IMessage>, IGenotype, BestGenotype>
 
-            synchronized(receivedPongs) {
-                if (receivedPongs.isEmpty()) {
-                    return
-                }
-                responseTriple = receivedPongs[0]
-                receivedPongs.clear()
+        synchronized(receivedPongs) {
+            if (receivedPongs.isEmpty()) {
+                return
             }
+            responseTriple = receivedPongs[0]
+            receivedPongs.clear()
+        }
 
-            val chosenChannel = responseTriple.first
-            val chosenGenotype = responseTriple.second
-            val chosenBestGenotype = responseTriple.third
-            val newGenotype = genotype.reproduce(chosenGenotype)
+        val chosenChannel = responseTriple.first
+        val chosenGenotype = responseTriple.second
+        val chosenBestGenotype = responseTriple.third
+        val newGenotype = genotype.reproduce(chosenGenotype)
 
-            when {
-                chosenGenotype.fitness() < newGenotype.fitness() -> {
-                    Printer.msg("Partner is worse, sending him replace: $chosenGenotype -> $genotype")
+        when {
+            chosenGenotype.fitness() < newGenotype.fitness() -> {
+                Printer.msg("Partner is worse, sending him replace: $chosenGenotype -> $genotype")
 
-                    synchronized(defaultResponseQueue) {
-                        defaultResponseQueue.add(Pair(chosenChannel, MessageReplace(newGenotype)))
-                    }
-                }
-                genotype.fitness() < newGenotype.fitness() -> {
-                    Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
-                    genotype = newGenotype
-                }
-                else -> {
-                    Printer.msg("Child is disappointing, abandoning: $newGenotype")
+                synchronized(defaultResponseQueue) {
+                    defaultResponseQueue.add(Pair(chosenChannel, MessageReplace(newGenotype)))
                 }
             }
-
-            if (bestGenotype.genotype.fitness() < chosenBestGenotype.genotype.fitness()) {
-                bestGenotype.genotype = chosenBestGenotype.genotype
-            } else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
-                bestGenotype.genotype = newGenotype
+            genotype.fitness() < newGenotype.fitness() -> {
+                Printer.msg("I'm worse, replacing myself: $genotype -> $newGenotype")
+                genotype = newGenotype
+            }
+            else -> {
+                Printer.msg("Child is disappointing, abandoning: $newGenotype")
             }
         }
 
-    }
-
-    suspend fun doActorStuff() {
-        Printer.msg("$id time genotype ${TimeFormat.getFormattedTimestamp(bestGenotype.timestamp)}")
-
-        // Launch a coroutine for consuming incoming messages
-        GlobalScope.launch {
-            channelListen()
+        if (bestGenotype.genotype.fitness() < chosenBestGenotype.genotype.fitness()) {
+            bestGenotype.genotype = chosenBestGenotype.genotype
+        } else if (bestGenotype.genotype.fitness() < newGenotype.fitness()) {
+            bestGenotype.genotype = newGenotype
         }
-
-        for (i in 0 until nIter) {
-            handleResponseQueues()
-
-            for (neighbourChannel in neighbours) {
-                Printer.msg("$id pinging")
-                neighbourChannel.send(MessagePing(id, bestGenotype, actorChannel))
-            }
-        }
-
-        handleResponseQueues()
-
-        logChannel.send(MessageFinish())
     }
 }
