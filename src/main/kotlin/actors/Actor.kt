@@ -130,10 +130,14 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         val chosenGenotype: IGenotype
 
         val reproduceIndex = reproduceChooser.choose(receivedPongs.second)
-        val removeIndex = removeChooser.choose(receivedPongs.second)
-
-        removeChannel = receivedPongs.first[removeIndex]
         chosenGenotype = receivedPongs.second[reproduceIndex]
+
+        receivedPongs.first.add(actorChannel)
+        receivedPongs.second.add(genotype)
+        
+        val removeIndex = removeChooser.choose(receivedPongs.second)
+        removeChannel = receivedPongs.first[removeIndex]
+
 
         val newGenotype = genotype.reproduce(chosenGenotype)
 
