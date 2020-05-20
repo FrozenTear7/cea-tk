@@ -5,7 +5,7 @@ import genotypes.IGenotype
 class GenotypeBestChooser : GenotypeChooser {
 
     override fun choose(genotypes: List<IGenotype>) : Int {
-        var bestIndex = 0
+        var bestIndex = -1
         var bestFitness = -Double.MAX_VALUE
 
         for (i in genotypes.indices) {

@@ -2,6 +2,7 @@ package actors
 
 import genotypeChoosers.GenotypeBestChooser
 import genotypeChoosers.GenotypeChooser
+import genotypeChoosers.GenotypeRandomChooser
 import genotypeChoosers.GenotypeWorstChooser
 import genotypes.*
 import kotlinx.coroutines.GlobalScope
@@ -18,7 +19,7 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
     private var reproduceChooser: GenotypeChooser = GenotypeBestChooser()
     private var removeChooser: GenotypeChooser = GenotypeWorstChooser()
-    private var genotype: IGenotype = GenotypeExample3()
+    private var genotype: IGenotype = GenotypeExample2()
     private var bestGenotype: BestGenotype =
         BestGenotype(genotype)
 
@@ -78,8 +79,10 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
     }
 
     private fun messageReplaceHandler(msg: MessageReplace) {
-        Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
-        genotype = msg.genotype
+        if (msg.genotype.fitness() > genotype.fitness()) {
+            Printer.msg("$id received replace: $genotype -> ${msg.genotype}")
+            genotype = msg.genotype
+        }
     }
 
     private fun messageLoggerPingHandler() {
