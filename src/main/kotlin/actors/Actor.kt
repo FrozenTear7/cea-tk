@@ -2,9 +2,10 @@ package actors
 
 import genotypeChoosers.GenotypeBestChooser
 import genotypeChoosers.GenotypeChooser
-import genotypeChoosers.GenotypeRandomChooser
 import genotypeChoosers.GenotypeWorstChooser
-import genotypes.*
+import genotypes.BestGenotype
+import genotypes.GenotypeExample2
+import genotypes.IGenotype
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
@@ -33,6 +34,12 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
         this.neighbours = neighbours
     }
 
+    private fun bestGenotypeOverwrite(newBestGenotype: BestGenotype) {
+        if (bestGenotype.genotype.fitness() < newBestGenotype.genotype.fitness()) {
+            bestGenotype.genotype = newBestGenotype.genotype
+        }
+    }
+
     private suspend fun channelListen() {
         while (true) {
             when (val msg = actorChannel.receive()) {
@@ -57,13 +64,13 @@ class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val 
             )
         }
 
-        if (bestGenotype.genotype.fitness() < msg.bestGenotype.genotype.fitness()) {
-            bestGenotype.genotype = msg.bestGenotype.genotype
-        }
+        bestGenotypeOverwrite(msg.bestGenotype)
     }
 
     private fun messagePongHandler(msg: MessagePong) {
         Printer.msg("$id received pong from actor ${msg.actorId}")
+
+        bestGenotypeOverwrite(msg.bestGenotype)
 
         synchronized(receivedPongs) {
             receivedPongs.first.add(msg.responseChannel)
