@@ -1,8 +1,7 @@
 package actors
 
-import genotypeChoosers.GenotypeBestChooser
-import genotypeChoosers.GenotypeChooser
-import genotypeChoosers.GenotypeWorstChooser
+import genotypeChoosers.GenotypeRandomChooser
+import genotypeChoosers.IGenotypeChooser
 import genotypes.BestGenotype
 import genotypes.GenotypeExample2
 import genotypes.IGenotype
@@ -18,8 +17,8 @@ import kotlin.collections.ArrayList
 class Actor(val id: Int, private val logChannel: Channel<IMessage>, private val nIter: Int) {
     val actorChannel = Channel<IMessage>()
     private var neighbours: MutableList<Channel<IMessage>> = ArrayList()
-    private var reproduceChooser: GenotypeChooser = GenotypeBestChooser()
-    private var removeChooser: GenotypeChooser = GenotypeWorstChooser()
+    private var reproduceChooser: IGenotypeChooser = GenotypeRandomChooser()
+    private var removeChooser: IGenotypeChooser = GenotypeRandomChooser()
     private var genotype: IGenotype = GenotypeExample2()
     private var bestGenotype: BestGenotype =
         BestGenotype(genotype)

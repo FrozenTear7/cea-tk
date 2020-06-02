@@ -16,7 +16,8 @@ class GenotypeExample3(xInitial: Double = randrange(-5.0, 5.0), yInitial: Double
     private val y = yInitial
 
     override fun fitness(): Double {
-        return 20 * exp(-0.2 * sqrt(0.5 * (x * x + y * y))) + exp(0.5*(cos(2*PI*x) + cos(2*PI*y))) - exp(1.0) - 20
+        return 20 * exp(-0.2 * sqrt(0.5 * (x * x + y * y))) +
+                exp(0.5 * (cos(2 * PI * x) + cos(2 * PI * y))) - exp(1.0) - 20
     }
 
     override fun reproduce(other: IGenotype): IGenotype {

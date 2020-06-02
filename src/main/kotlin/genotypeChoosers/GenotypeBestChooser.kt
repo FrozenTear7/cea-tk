@@ -2,9 +2,8 @@ package genotypeChoosers
 
 import genotypes.IGenotype
 
-class GenotypeBestChooser : GenotypeChooser {
-
-    override fun choose(genotypes: List<IGenotype>) : Int {
+class GenotypeBestChooser : IGenotypeChooser {
+    override fun choose(genotypes: List<IGenotype>): Int {
         var bestIndex = -1
         var bestFitness = -Double.MAX_VALUE
 

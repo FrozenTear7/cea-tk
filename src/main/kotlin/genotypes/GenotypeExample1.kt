@@ -4,7 +4,7 @@ import kotlin.math.abs
 
 // Simple optimisation problem: maximize the area of a rectangle with perimeter 2 and one side with length x.
 // Negative x (and greater than 1, resulting in the other side having negative length) are not ruled out,
-// but should yield negative area (fitness).
+// but should yield negative area (fitness).a
 
 // Reproducing two genotypes yields their average +- small random value (mutation)
 
